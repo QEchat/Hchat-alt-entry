@@ -49,6 +49,27 @@ Tinker 文本元数据按等号或冒号前的完整键名匹配，跳过空行�
 
 已有依据：[消息分类](MESSAGE_TYPE_CLASSIFICATION_EVIDENCE.md)、[合并转发分类](FORWARDED_RECORD_TYPE_EVIDENCE.md)、[消息卡片标签](MESSAGE_CARD_LABEL_FIX_EVIDENCE.md)、[功能框架中的各功能说明](FEATURE_FRAMEWORK.md)。后续取得 APK 后，为每个公共能力记录 APK SHA-256、versionCode、ABI、定位查询、完整候选集合、经实现确认的描述符和调用时序；实际安装验证还须记录模块提交、模块 APK 指纹与 R8 状态。
 
+## APK 静态入口证据（2026-09-12）
+
+DexClub 已读取 `/data/data/com.termux/files/home/wechat-apks/` 中的 8 个目标 APK，并核对 Manifest 的 `versionName/versionCode`。本轮重点查询聊天行绑定、单消息菜单创建和 `ChatFooter.onAttachedToWindow()`；结果证明这些入口在目标版本都能被独立特征命中，但不等同于 Hook 已在设备运行成功。
+
+| 版本 | versionCode | 聊天行绑定候选 | 单消息菜单创建候选 | 输入区挂载 |
+| --- | ---: | --- | --- | --- |
+| 8.0.49 | 2600 | `ic4.f.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.k0.a(...View;ContextMenuInfo)V` | `ChatFooter.onAttachedToWindow()V` |
+| 8.0.58 | 2841 | `es4.f.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.l0.a(...View;ContextMenuInfo)V` | 同上 |
+| 8.0.66 | 2980 | `d25.g.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.l0.a(...View;ContextMenuInfo)V` | 同上 |
+| 8.0.68 | 3020 | `m55.g.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.m0.a(...View;ContextMenuInfo)V` | 同上 |
+| 8.0.72 | 3100 | `nb5.g.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.m0.a(...View;ContextMenuInfo)V` | 同上 |
+| 8.0.74 | 3120 | `od5.g.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.m0.a(...View;ContextMenuInfo)V` | 同上 |
+| 8.0.76 | 3140 | `ve5.g.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.m0.a(...View;ContextMenuInfo)V` | 同上 |
+| 8.0.77 | 3160 | `zh5.g.h(...IIZLjava/util/List;)V` | `com.tencent.mm.ui.chatting.viewitems.n0.a(...View;ContextMenuInfo)V` | 同上 |
+
+聊天行候选在 8 个版本都保持 5 参数形状，且 8.0.49 与 8.0.77 的实现检查均能读到 RecyclerView holder 的根 View；8.0.49 的 holder 还确认存在 `timeTV` 字段。单消息菜单查询在新版本会同时返回 Kotlin/函数对象委托候选，生产定位器必须继续用具体参数、非抽象、宿主 viewitems 包过滤，不能按第一个结果安装。输入区挂载方法的完整描述符在 8 个版本保持不变。
+
+本轮结论：现有三条定位路线可以继续作为公共适配器的基础，版本差异主要集中在混淆 owner 和消息 holder 类型。还需要设备 Hook 安装、完整菜单点击入口和 R8 包验证；目前不把它们标成“运行时已适配”。
+
+`8072.apk` 与带完整文件名的 8.0.72 APK 都解析为 8.0.72/versionCode 3100；8.0.65/versionCode 2960 也已存在，但不在默认八版本矩阵中。
+
 ## 回归与验收
 
 本轮缓存完整性 64 项、版本元数据 28 项 JVM 断言通过。版本元数据新增用例在旧实现上已复现注释值误读。
