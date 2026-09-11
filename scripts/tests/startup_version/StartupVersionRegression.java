@@ -79,6 +79,18 @@ public class StartupVersionRegression {
   eq("402",api.current().clientVersion,"instance initial metadata");
   write(meta,"client.ver=403\nTINKER_ID=latest\n");
   eq("403",api.current().clientVersion,"instance immediately refreshes metadata");
+  write(meta,"# patch.client.ver=999\n! patch.client.ver=998\nbackup.patch.client.ver=997\npatch.client.ver.old=996\nnote=patch.client.ver=995\nclient.ver=404\n# NEW_TINKER_ID=comment\n! NEW_TINKER_ID=comment2\nBACKUP_NEW_TINKER_ID=wrong\nNEW_TINKER_ID.old=wrong2\nTINKER_ID=real-old\n");
+  info=api.current();
+  eq("404",info.clientVersion,"comments and similar keys cannot supply client version");
+  eq("real-old",info.tinkerId,"comments and similar keys cannot supply Tinker ID");
+  write(meta," patch.client.ver =   \n patch.client.ver : 405 \n NEW_TINKER_ID =   \n NEW_TINKER_ID : new=value:tail \n");
+  before=info.cacheKey;
+  info=api.current();
+  eq("405",info.clientVersion,"blank values are skipped and colon separators accepted");
+  eq("new=value:tail",info.tinkerId,"only the first separator splits a metadata entry");
+  eq(false,before.equals(info.cacheKey),"corrected metadata invalidates previous runtime key");
+  write(meta,"client.ver=406\nTINKER_ID=final\n");
+  eq("406",api.current().clientVersion,"legacy fallback remains live after metadata replacement");
   loader.metadata="clientVersion=900 TINKER_ID=runtime-new intent_patch_old_version=runtime-patch";
   int reads=host.fileReads;
   eq("900",api.current().clientVersion,"loader mutation immediately visible");

@@ -109,13 +109,17 @@ object DexMethodCache {
         if (runtimeKey.isBlank()) return emptyList()
         if (!ensureRuntimeKey(prefs, runtimeKey)) return emptyList()
         val descriptors = prefs.getString(name, "")?.takeIf { it.isNotBlank() } ?: return emptyList()
-        return descriptors
-            .split('\n')
-            .mapNotNull { descriptor ->
-                descriptor.takeIf { it.isNotBlank() }?.let {
-                    runCatching { DexMethod(it).getMethodInstance(classLoader) }.getOrNull()
-                }
+        val methods = resolveMethodList(descriptors, classLoader)
+        if (methods == null) {
+            // A partially resolved list cannot represent all parallel host entries.
+            // Only evict this record, and do not erase a newer runtime's cache.
+            if (prefs.getString(CACHE_KEY, "") == runtimeKey &&
+                prefs.getString(name, "") == descriptors
+            ) {
+                prefs.edit().remove(name).apply()
             }
+        }
+        return methods.orEmpty()
     }
 
     fun loadListCrossProcess(
@@ -128,13 +132,17 @@ object DexMethodCache {
         val cachedRuntimeKey = prefs.getString(CACHE_KEY, "").orEmpty()
         if (!sameRuntimeAcrossProcesses(cachedRuntimeKey, runtimeKey)) return emptyList()
         val descriptors = prefs.getString(name, "")?.takeIf { it.isNotBlank() } ?: return emptyList()
-        return descriptors
-            .split('\n')
-            .mapNotNull { descriptor ->
-                descriptor.takeIf { it.isNotBlank() }?.let {
-                    runCatching { DexMethod(it).getMethodInstance(classLoader) }.getOrNull()
-                }
-            }
+        // Child processes resolve the whole list against their own ClassLoader,
+        // but must not remove descriptors that remain valid in the main process.
+        return resolveMethodList(descriptors, classLoader).orEmpty()
+    }
+
+    private fun resolveMethodList(descriptors: String, classLoader: ClassLoader): List<Method>? {
+        return runCatching {
+            descriptors.split('\n')
+                .filter { it.isNotBlank() }
+                .map { DexMethod(it).getMethodInstance(classLoader) }
+        }.getOrNull()
     }
 
     fun saveList(

@@ -33,6 +33,10 @@
 - 依赖 DexKit 的普通功能统一通过 `h.Hchat.hooks.core.DexInstallScheduler` 安装：功能层安装函数返回 `Boolean`，`true` 代表核心 hook 已安装成功，`false` 代表缓存缺失、DexKit 暂未命中或 Hook 安装失败并交给调度器有限重试。微信设置页入口是时序例外：不等待普通调度队列或 DexReady，而是在 `Hchat-Init` 功能安装阶段通过同一 DexKit 串行门直接安装，既抢在设置页 UI 构建前生效，也不再创建独立线程并发查询共享 bridge。除这类明确例外外，功能安装期只登记任务，所有功能登记完成后由调度器按阶段和优先级单后台队列执行；不要在功能内再写 `installWithRetry`、`Thread.sleep` 重试或裸线程抢跑 DexKit。
 - 使用 `DexMethodCache` 的功能不能在 hooker 构造时保存固定 `runtimeKey`；每次读取或写入定位缓存前都要实时调用 `DexMethodCache.runtimeKey(context, classLoader)`，让微信升级、降级、热更新和 ClassLoader 指纹变化能立即清空旧 descriptor 并重建当前版本缓存。
 
+## 多版本适配状态
+
+当前分层、缓存完整性约定、证据边界与逐版本验证记录见 [微信多版本适配与验证记录](WECHAT_COMPATIBILITY.md)。DexMethodCache 列表缓存现在要求整组非空描述符全部可解析；同进程失败移除该列表，跨进程失败保留主进程记录。此检查不替代业务签名与多入口安装完整性验证。
+
 ## 本机工具说明
 
 当前项目常用工具位于 Termux 环境，默认工作区是：

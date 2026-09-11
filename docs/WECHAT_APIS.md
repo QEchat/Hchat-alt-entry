@@ -569,6 +569,8 @@ WeChatApis.runtime().databaseChanges().subscribe(change -> {
 
 微信版本、clientVersion、Tinker/热更新标识和 DexKit 缓存指纹。
 
+Tinker 文本元数据只匹配分隔符前的完整键名，支持等号和冒号，忽略注释及空值，避免旧键名、备份键名或注释中的值污染缓存指纹。元数据来源优先级不变；版本信息是定位缓存身份，不代表该版本所有功能已验证，覆盖情况见 [多版本适配记录](WECHAT_COMPATIBILITY.md)。
+
 ```java
 WeChatVersionInfo version = WeChatApis.runtime().version().current();
 String display = version.displayVersion();

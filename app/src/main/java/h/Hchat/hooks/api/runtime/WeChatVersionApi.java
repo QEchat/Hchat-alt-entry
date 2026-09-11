@@ -201,12 +201,15 @@ public final class WeChatVersionApi {
             reader = new java.io.BufferedReader(new java.io.FileReader(file));
             String line;
             while ((line = reader.readLine()) != null) {
-                int index = line.indexOf(key);
-                if (index < 0) continue;
-                int eq = line.indexOf('=', index + key.length());
-                if (eq < 0) eq = line.indexOf(':', index + key.length());
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#") || line.startsWith("!")) continue;
+                int eq = line.indexOf('=');
+                int colon = line.indexOf(':');
+                if (eq < 0 || (colon >= 0 && colon < eq)) eq = colon;
                 if (eq < 0 || eq + 1 >= line.length()) continue;
-                return line.substring(eq + 1).trim();
+                if (!key.equals(line.substring(0, eq).trim())) continue;
+                String value = line.substring(eq + 1).trim();
+                if (!value.isEmpty()) return value;
             }
         } catch (Throwable ignored) {
         } finally {
